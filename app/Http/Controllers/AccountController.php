@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Http\Requests\Account\StoreUserRequest;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,10 +17,12 @@ class AccountController extends Controller
      */
     public function index(): Response
     {
+        $this->authorizeAccountManagement();
+
         return Inertia::render('Account', [
             'users' => User::query()
                 ->latest()
-                ->get(['id', 'name', 'email', 'role', 'email_verified_at', 'created_at']),
+                ->get(['id', 'name', 'email', 'role', 'created_at']),
             'roles' => UserRole::values(),
         ]);
     }
@@ -32,5 +35,17 @@ class AccountController extends Controller
         User::query()->create($request->validated());
 
         return to_route('account')->with('status', 'User created successfully.');
+    }
+
+    /**
+     * Ensure the current user may manage accounts.
+     *
+     * @throws AuthorizationException
+     */
+    protected function authorizeAccountManagement(): void
+    {
+        if (request()->user()?->role === UserRole::User) {
+            throw new AuthorizationException;
+        }
     }
 }

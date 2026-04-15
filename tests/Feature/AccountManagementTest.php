@@ -13,7 +13,7 @@ class AccountManagementTest extends TestCase
 
     public function test_authenticated_users_can_view_the_account_management_page(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::Admin]);
         $listedUsers = User::factory()->count(2)->create();
 
         $response = $this->actingAs($user)->get(route('account'));
@@ -26,7 +26,7 @@ class AccountManagementTest extends TestCase
 
     public function test_authenticated_users_can_create_a_new_user_from_the_account_management_page(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::Admin]);
 
         $response = $this->actingAs($user)->post(route('account.store'), [
             'name' => 'New Team Member',
@@ -46,7 +46,7 @@ class AccountManagementTest extends TestCase
 
     public function test_user_creation_requires_a_unique_email_address(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::Admin]);
         $existingUser = User::factory()->create();
 
         $response = $this->from(route('account'))->actingAs($user)->post(route('account.store'), [
@@ -63,7 +63,7 @@ class AccountManagementTest extends TestCase
 
     public function test_user_creation_requires_a_valid_role(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::Admin]);
 
         $response = $this->from(route('account'))->actingAs($user)->post(route('account.store'), [
             'name' => 'Invalid Role User',
@@ -75,5 +75,32 @@ class AccountManagementTest extends TestCase
 
         $response->assertRedirect(route('account'));
         $response->assertSessionHasErrors(['role']);
+    }
+
+    public function test_users_with_user_role_can_not_view_the_account_management_page(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::User]);
+
+        $response = $this->actingAs($user)->get(route('account'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_users_with_user_role_can_not_create_users_from_the_account_management_page(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::User]);
+
+        $response = $this->actingAs($user)->post(route('account.store'), [
+            'name' => 'Blocked User',
+            'email' => 'blocked@example.com',
+            'role' => UserRole::User->value,
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('users', [
+            'email' => 'blocked@example.com',
+        ]);
     }
 }

@@ -35,7 +35,6 @@ class AdminUserSeeder extends Seeder
                 [
                     'name' => $user['name'],
                     'role' => $user['role'],
-                    'email_verified_at' => now(),
                     'password' => 'password',
                 ],
             );

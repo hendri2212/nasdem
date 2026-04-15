@@ -24,19 +24,16 @@ class AdminUserSeederTest extends TestCase
         $this->assertNotNull($superadmin);
         $this->assertSame('Super Admin Nasdem', $superadmin->name);
         $this->assertSame(UserRole::Superadmin, $superadmin->role);
-        $this->assertNotNull($superadmin->email_verified_at);
         $this->assertTrue(Hash::check('password', $superadmin->password));
 
         $this->assertNotNull($admin);
         $this->assertSame('Admin Nasdem', $admin->name);
         $this->assertSame(UserRole::Admin, $admin->role);
-        $this->assertNotNull($admin->email_verified_at);
         $this->assertTrue(Hash::check('password', $admin->password));
 
         $this->assertNotNull($user);
         $this->assertSame('User Nasdem', $user->name);
         $this->assertSame(UserRole::User, $user->role);
-        $this->assertNotNull($user->email_verified_at);
         $this->assertTrue(Hash::check('password', $user->password));
     }
 

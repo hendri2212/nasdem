@@ -7,14 +7,13 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle, MailCheck, MailX, UserPlus, UsersRound } from 'lucide-vue-next';
+import { LoaderCircle, UserPlus, UsersRound } from 'lucide-vue-next';
 
 interface AccountUser {
     id: number;
     name: string;
     email: string;
     role: string;
-    email_verified_at: null | string;
     created_at: string;
 }
 
@@ -71,16 +70,10 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 self-start lg:min-w-72">
+                    <div class="grid grid-cols-1 gap-3 self-start lg:min-w-72">
                         <div class="rounded-2xl border border-sidebar-border/70 bg-background/80 p-4">
                             <p class="text-sm text-muted-foreground">Total users</p>
                             <p class="mt-2 text-2xl font-semibold text-foreground">{{ props.users.length }}</p>
-                        </div>
-                        <div class="rounded-2xl border border-sidebar-border/70 bg-background/80 p-4">
-                            <p class="text-sm text-muted-foreground">Verified</p>
-                            <p class="mt-2 text-2xl font-semibold text-foreground">
-                                {{ props.users.filter((user) => user.email_verified_at).length }}
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -102,7 +95,6 @@ const submit = () => {
                                     <th class="px-6 py-3 font-medium">Name</th>
                                     <th class="px-6 py-3 font-medium">Email</th>
                                     <th class="px-6 py-3 font-medium">Role</th>
-                                    <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 font-medium">Created</th>
                                 </tr>
                             </thead>
@@ -118,24 +110,10 @@ const submit = () => {
                                             {{ user.role }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <span
-                                            class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium"
-                                            :class="
-                                                user.email_verified_at
-                                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                    : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                                            "
-                                        >
-                                            <MailCheck v-if="user.email_verified_at" class="size-3.5" />
-                                            <MailX v-else class="size-3.5" />
-                                            {{ user.email_verified_at ? 'Verified' : 'Unverified' }}
-                                        </span>
-                                    </td>
                                     <td class="px-6 py-4 text-muted-foreground">{{ new Date(user.created_at).toLocaleDateString() }}</td>
                                 </tr>
                                 <tr v-if="props.users.length === 0">
-                                    <td colspan="5" class="px-6 py-10 text-center text-sm text-muted-foreground">Belum ada user yang terdaftar.</td>
+                                    <td colspan="4" class="px-6 py-10 text-center text-sm text-muted-foreground">Belum ada user yang terdaftar.</td>
                                 </tr>
                             </tbody>
                         </table>
