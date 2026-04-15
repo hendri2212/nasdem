@@ -13,12 +13,14 @@ interface AccountUser {
     id: number;
     name: string;
     email: string;
+    role: string;
     email_verified_at: null | string;
     created_at: string;
 }
 
 const props = defineProps<{
     users: AccountUser[];
+    roles: string[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -31,6 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const form = useForm('AccountCreateUser', {
     name: '',
     email: '',
+    role: 'user',
     password: '',
     password_confirmation: '',
 });
@@ -98,6 +101,7 @@ const submit = () => {
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Name</th>
                                     <th class="px-6 py-3 font-medium">Email</th>
+                                    <th class="px-6 py-3 font-medium">Role</th>
                                     <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 font-medium">Created</th>
                                 </tr>
@@ -109,6 +113,11 @@ const submit = () => {
                                         <div class="text-xs text-muted-foreground">ID #{{ user.id }}</div>
                                     </td>
                                     <td class="px-6 py-4 text-muted-foreground">{{ user.email }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium capitalize text-primary">
+                                            {{ user.role }}
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium"
@@ -126,7 +135,7 @@ const submit = () => {
                                     <td class="px-6 py-4 text-muted-foreground">{{ new Date(user.created_at).toLocaleDateString() }}</td>
                                 </tr>
                                 <tr v-if="props.users.length === 0">
-                                    <td colspan="4" class="px-6 py-10 text-center text-sm text-muted-foreground">Belum ada user yang terdaftar.</td>
+                                    <td colspan="5" class="px-6 py-10 text-center text-sm text-muted-foreground">Belum ada user yang terdaftar.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -148,6 +157,20 @@ const submit = () => {
                                 <Label for="email">Email address</Label>
                                 <Input id="email" v-model="form.email" type="email" required autocomplete="email" placeholder="email@example.com" />
                                 <InputError :message="form.errors.email" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="role">Role</Label>
+                                <select
+                                    id="role"
+                                    v-model="form.role"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                >
+                                    <option v-for="role in props.roles" :key="role" :value="role" class="capitalize">
+                                        {{ role }}
+                                    </option>
+                                </select>
+                                <InputError :message="form.errors.role" />
                             </div>
 
                             <div class="grid gap-2">

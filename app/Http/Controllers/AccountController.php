@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Http\Requests\Account\StoreUserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,8 @@ class AccountController extends Controller
         return Inertia::render('Account', [
             'users' => User::query()
                 ->latest()
-                ->get(['id', 'name', 'email', 'email_verified_at', 'created_at']),
+                ->get(['id', 'name', 'email', 'role', 'email_verified_at', 'created_at']),
+            'roles' => UserRole::values(),
         ]);
     }
 

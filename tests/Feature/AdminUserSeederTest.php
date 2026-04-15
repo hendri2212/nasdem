@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,6 +21,7 @@ class AdminUserSeederTest extends TestCase
 
         $this->assertNotNull($admin);
         $this->assertSame('Admin Nasdem', $admin->name);
+        $this->assertSame(UserRole::Superadmin, $admin->role);
         $this->assertNotNull($admin->email_verified_at);
         $this->assertTrue(Hash::check('password', $admin->password));
     }
