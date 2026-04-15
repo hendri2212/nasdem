@@ -1,0 +1,19 @@
+/// <reference types="vite/client" />
+
+declare module '*.vue' {
+    import type { DefineComponent } from 'vue';
+
+    const component: DefineComponent<Record<string, never>, Record<string, never>, unknown>;
+
+    export default component;
+}
+
+interface ImportMetaEnv {
+    readonly VITE_APP_NAME: string;
+    readonly [key: string]: boolean | string | undefined;
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv;
+    readonly glob: <T>(pattern: string) => Record<string, () => Promise<T>>;
+}
