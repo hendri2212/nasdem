@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, UserRoundCog } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, ReceiptText, UserRoundCog } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -17,6 +17,11 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: 'Dashboard',
             href: '/dashboard',
             icon: LayoutGrid,
+        },
+        {
+            title: 'Transaction',
+            href: '/transactions',
+            icon: ReceiptText,
         },
     ];
 
