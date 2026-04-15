@@ -13,14 +13,32 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::query()->updateOrCreate(
-            ['email' => 'admin@nasdem.test'],
+        collect([
+            [
+                'name' => 'Super Admin Nasdem',
+                'email' => 'admin@nasdem.test',
+                'role' => UserRole::Superadmin,
+            ],
             [
                 'name' => 'Admin Nasdem',
-                'role' => UserRole::Superadmin,
-                'email_verified_at' => now(),
-                'password' => 'password',
+                'email' => 'admin@gmail.com',
+                'role' => UserRole::Admin,
             ],
-        );
+            [
+                'name' => 'User Nasdem',
+                'email' => 'user@gmail.com',
+                'role' => UserRole::User,
+            ],
+        ])->each(function (array $user): void {
+            User::query()->updateOrCreate(
+                ['email' => $user['email']],
+                [
+                    'name' => $user['name'],
+                    'role' => $user['role'],
+                    'email_verified_at' => now(),
+                    'password' => 'password',
+                ],
+            );
+        });
     }
 }
