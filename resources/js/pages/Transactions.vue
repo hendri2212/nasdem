@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { ArrowDownLeft, ArrowUpRight, Landmark, LoaderCircle, ReceiptText, Search, Wallet } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, reactive, watch } from 'vue';
 
 interface TransactionItem {
     id: number;
@@ -25,11 +25,18 @@ interface Totals {
     net_movement: number;
 }
 
+interface TransactionFilters {
+    search: string;
+    type: '' | TransactionItem['type'];
+    location: '' | TransactionItem['location'];
+}
+
 const props = defineProps<{
     transactions: TransactionItem[];
     totals: Totals;
     types: Array<'credit' | 'debit'>;
     locations: Array<'bank' | 'cash'>;
+    filters: TransactionFilters;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -45,6 +52,12 @@ const form = useForm({
     location: 'cash' as 'cash' | 'bank',
     description: '',
     amount: '',
+});
+
+const filters = reactive<TransactionFilters>({
+    search: props.filters.search,
+    type: props.filters.type,
+    location: props.filters.location,
 });
 
 const formatCurrency = (amount: number): string => {
@@ -90,6 +103,47 @@ const typeClasses: Record<TransactionItem['type'], string> = {
     credit: 'bg-emerald-500/12 text-emerald-700',
     debit: 'bg-rose-500/12 text-rose-700',
 };
+
+const hasActiveFilters = computed(() => {
+    return filters.search !== '' || filters.type !== '' || filters.location !== '';
+});
+
+let filterDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+const applyFilters = (): void => {
+    router.get(
+        route('transactions'),
+        {
+            search: filters.search || undefined,
+            type: filters.type || undefined,
+            location: filters.location || undefined,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['transactions', 'filters'],
+        },
+    );
+};
+
+const resetFilters = (): void => {
+    filters.search = '';
+    filters.type = '';
+    filters.location = '';
+};
+
+watch(
+    () => [filters.search, filters.type, filters.location],
+    () => {
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(applyFilters, 300);
+    },
+);
+
+onBeforeUnmount(() => {
+    clearTimeout(filterDebounceTimer);
+});
 
 const submit = (): void => {
     form.transform((data) => ({
@@ -152,16 +206,39 @@ const submit = (): void => {
             <div class="grid gap-6 xl:grid-cols-[1.6fr_0.95fr]">
                 <Card class="rounded-[1.75rem] border-sidebar-border/70 shadow-sm">
                     <CardHeader class="gap-4 border-b border-sidebar-border/70 pb-5">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                            <div class="space-y-1">
-                                <CardTitle class="text-xl">Recent transactions</CardTitle>
-                                <CardDescription>Data terbaru dari tabel transaksi.</CardDescription>
+                        <div>
+                            <CardTitle class="text-xl">Recent transactions</CardTitle>
+                        </div>
+
+                        <div class="grid w-full gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,0.7fr))_auto]">
+                            <div class="relative">
+                                <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input v-model="filters.search" class="pl-9" placeholder="Cari deskripsi atau nomor transaksi" />
                             </div>
 
-                            <div class="relative w-full max-w-sm">
-                                <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input class="pl-9" placeholder="Pencarian akan dihubungkan berikutnya" disabled />
-                            </div>
+                            <select
+                                v-model="filters.type"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm capitalize text-foreground ring-offset-background"
+                            >
+                                <option value="">Semua type</option>
+                                <option v-for="type in props.types" :key="type" :value="type" class="capitalize">
+                                    {{ type }}
+                                </option>
+                            </select>
+
+                            <select
+                                v-model="filters.location"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm capitalize text-foreground ring-offset-background"
+                            >
+                                <option value="">Semua lokasi</option>
+                                <option v-for="location in props.locations" :key="location" :value="location" class="capitalize">
+                                    {{ location }}
+                                </option>
+                            </select>
+
+                            <Button v-if="hasActiveFilters" type="button" variant="outline" class="w-full lg:w-auto" @click="resetFilters">
+                                Reset
+                            </Button>
                         </div>
                     </CardHeader>
 
@@ -291,7 +368,6 @@ const submit = (): void => {
                             </form>
                         </CardContent>
                     </Card>
-
                 </div>
             </div>
         </div>

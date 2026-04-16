@@ -99,10 +99,10 @@ const submit = () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-sidebar-border/70">
-                                <tr v-for="user in props.users" :key="user.id" class="align-top">
+                                <tr v-for="(user, index) in props.users" :key="user.id" class="align-top">
                                     <td class="px-6 py-4">
                                         <div class="font-medium text-foreground">{{ user.name }}</div>
-                                        <div class="text-xs text-muted-foreground">ID #{{ user.id }}</div>
+                                        <div class="text-xs text-muted-foreground">No. {{ index + 1 }}</div>
                                     </td>
                                     <td class="px-6 py-4 text-muted-foreground">{{ user.email }}</td>
                                     <td class="px-6 py-4">

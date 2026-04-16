@@ -7,6 +7,7 @@ use App\Enums\TransactionType;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,9 +16,28 @@ class TransactionController extends Controller
     /**
      * Show the transaction page.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = trim($request->string('search')->toString());
+        $type = $request->string('type')->toString();
+        $location = $request->string('location')->toString();
+
         $transactions = Transaction::query()
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($searchQuery) use ($search): void {
+                    $searchQuery->where('description', 'like', "%{$search}%");
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->when(in_array($type, TransactionType::values(), true), function ($query) use ($type): void {
+                $query->where('type', $type);
+            })
+            ->when(in_array($location, TransactionLocation::values(), true), function ($query) use ($location): void {
+                $query->where('location', $location);
+            })
             ->latest('transaction_date')
             ->get([
                 'id',
@@ -61,6 +81,11 @@ class TransactionController extends Controller
             ],
             'types' => TransactionType::values(),
             'locations' => TransactionLocation::values(),
+            'filters' => [
+                'search' => $search,
+                'type' => in_array($type, TransactionType::values(), true) ? $type : '',
+                'location' => in_array($location, TransactionLocation::values(), true) ? $location : '',
+            ],
         ]);
     }
 
