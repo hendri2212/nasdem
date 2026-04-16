@@ -15,6 +15,7 @@ class AccountManagementTest extends TestCase
     {
         $user = User::factory()->create(['role' => UserRole::Admin]);
         $listedUsers = User::factory()->count(2)->create();
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin]);
 
         $response = $this->actingAs($user)->get(route('account'));
 
@@ -22,6 +23,20 @@ class AccountManagementTest extends TestCase
         $response->assertSee($listedUsers->first()->name);
         $response->assertSee($listedUsers->last()->email);
         $response->assertSee(UserRole::User->value);
+        $response->assertDontSee($superadmin->name);
+        $response->assertDontSee($superadmin->email);
+    }
+
+    public function test_superadmin_can_view_superadmin_rows_on_the_account_management_page(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Superadmin]);
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin]);
+
+        $response = $this->actingAs($user)->get(route('account'));
+
+        $response->assertOk();
+        $response->assertSee($superadmin->email);
+        $response->assertSee(UserRole::Superadmin->value);
     }
 
     public function test_authenticated_users_can_create_a_new_user_from_the_account_management_page(): void

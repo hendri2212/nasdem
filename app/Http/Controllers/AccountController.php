@@ -19,8 +19,13 @@ class AccountController extends Controller
     {
         $this->authorizeAccountManagement();
 
+        $currentUser = request()->user();
+
         return Inertia::render('Account', [
             'users' => User::query()
+                ->when($currentUser?->role !== UserRole::Superadmin, function ($query) {
+                    $query->where('role', '!=', UserRole::Superadmin->value);
+                })
                 ->latest()
                 ->get(['id', 'name', 'email', 'role', 'created_at']),
             'roles' => UserRole::values(),
