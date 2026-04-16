@@ -2,13 +2,14 @@
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ArrowDownLeft, ArrowUpRight, Landmark, LoaderCircle, ReceiptText, Search, Wallet } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, reactive, watch } from 'vue';
+import { ArrowDownLeft, ArrowUpRight, Landmark, LoaderCircle, MoreVertical, Pencil, ReceiptText, Search, Trash2, Wallet, X } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 
 interface TransactionItem {
     id: number;
@@ -53,6 +54,8 @@ const form = useForm({
     description: '',
     amount: '',
 });
+
+const selectedTransactionId = ref<number | null>(null);
 
 const filters = reactive<TransactionFilters>({
     search: props.filters.search,
@@ -104,6 +107,8 @@ const typeClasses: Record<TransactionItem['type'], string> = {
     debit: 'bg-rose-500/12 text-rose-700',
 };
 
+const isEditing = computed(() => selectedTransactionId.value !== null);
+
 const hasActiveFilters = computed(() => {
     return filters.search !== '' || filters.type !== '' || filters.location !== '';
 });
@@ -145,16 +150,67 @@ onBeforeUnmount(() => {
     clearTimeout(filterDebounceTimer);
 });
 
+const resetTransactionForm = (): void => {
+    form.reset();
+    form.clearErrors();
+    form.type = 'credit';
+    form.location = 'cash';
+    selectedTransactionId.value = null;
+};
+
+const formatDateTimeLocalValue = (value: string): string => {
+    const date = new Date(value);
+    const timezoneOffset = date.getTimezoneOffset() * 60_000;
+
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
+const editTransaction = (transaction: TransactionItem): void => {
+    selectedTransactionId.value = transaction.id;
+    form.transaction_date = formatDateTimeLocalValue(transaction.transaction_date);
+    form.type = transaction.type;
+    form.location = transaction.location;
+    form.description = transaction.description;
+    form.amount = String(transaction.amount);
+    form.clearErrors();
+};
+
+const deleteTransaction = (transactionId: number): void => {
+    if (!window.confirm('Hapus transaksi ini?')) {
+        return;
+    }
+
+    router.delete(route('transactions.destroy', transactionId), {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (selectedTransactionId.value === transactionId) {
+                resetTransactionForm();
+            }
+        },
+    });
+};
+
 const submit = (): void => {
     form.transform((data) => ({
         ...data,
         amount: Number(data.amount),
-    })).post(route('transactions.store'), {
+    }));
+
+    if (selectedTransactionId.value !== null) {
+        form.put(route('transactions.update', selectedTransactionId.value), {
+            preserveScroll: true,
+            onSuccess: () => {
+                resetTransactionForm();
+            },
+        });
+
+        return;
+    }
+
+    form.post(route('transactions.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset();
-            form.type = 'credit';
-            form.location = 'cash';
+            resetTransactionForm();
         },
     });
 };
@@ -252,6 +308,9 @@ const submit = (): void => {
                                         <th class="px-6 py-4 font-medium">Type</th>
                                         <th class="px-6 py-4 font-medium">Location</th>
                                         <th class="px-6 py-4 font-medium">Amount</th>
+                                        <th class="w-14 px-4 py-4">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-sidebar-border/70">
@@ -283,9 +342,33 @@ const submit = (): void => {
                                             </span>
                                         </td>
                                         <td class="px-6 py-5 font-medium text-foreground">{{ formatCurrency(transaction.amount) }}</td>
+                                        <td class="w-14 px-4 py-5">
+                                            <div class="flex justify-end">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger as-child>
+                                                        <Button type="button" variant="ghost" size="icon" class="size-7">
+                                                            <MoreVertical class="size-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" class="w-40">
+                                                        <DropdownMenuItem @click="editTransaction(transaction)">
+                                                            <Pencil class="mr-2 size-4" />
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            class="text-destructive focus:text-destructive"
+                                                            @click="deleteTransaction(transaction.id)"
+                                                        >
+                                                            <Trash2 class="mr-2 size-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </td>
                                     </tr>
                                     <tr v-if="props.transactions.length === 0">
-                                        <td colspan="5" class="px-6 py-12 text-center text-sm text-muted-foreground">
+                                        <td colspan="6" class="px-6 py-12 text-center text-sm text-muted-foreground">
                                             Belum ada transaksi yang tersimpan.
                                         </td>
                                     </tr>
@@ -298,8 +381,18 @@ const submit = (): void => {
                 <div class="grid gap-6">
                     <Card class="rounded-[1.75rem] border-sidebar-border/70 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Create transaction</CardTitle>
-                            <CardDescription>Simpan transaksi baru langsung ke tabel transaksi.</CardDescription>
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <CardTitle class="text-xl">{{ isEditing ? 'Edit transaction' : 'Create transaction' }}</CardTitle>
+                                    <CardDescription>
+                                        {{ '' }}
+                                    </CardDescription>
+                                </div>
+
+                                <Button v-if="isEditing" type="button" variant="ghost" size="icon" @click="resetTransactionForm">
+                                    <X class="size-4" />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <form class="space-y-5" @submit.prevent="submit">
@@ -356,14 +449,27 @@ const submit = (): void => {
                                     <InputError :message="form.errors.amount" />
                                 </div>
 
-                                <Button type="submit" class="w-full" :disabled="form.processing">
-                                    <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
-                                    <ReceiptText v-else class="size-4" />
-                                    Save transaction
-                                </Button>
+                                <div class="flex flex-col gap-3 sm:flex-row">
+                                    <Button type="submit" class="w-full" :disabled="form.processing">
+                                        <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
+                                        <component :is="isEditing ? Pencil : ReceiptText" v-else class="size-4" />
+                                        {{ isEditing ? 'Update transaction' : 'Save transaction' }}
+                                    </Button>
+
+                                    <Button
+                                        v-if="isEditing"
+                                        type="button"
+                                        variant="outline"
+                                        class="w-full sm:w-auto"
+                                        :disabled="form.processing"
+                                        @click="resetTransactionForm"
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
 
                                 <p v-if="form.recentlySuccessful" class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                    Transaksi berhasil ditambahkan.
+                                    {{ isEditing ? 'Transaksi berhasil diperbarui.' : 'Transaksi berhasil ditambahkan.' }}
                                 </p>
                             </form>
                         </CardContent>

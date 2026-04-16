@@ -16,6 +16,8 @@ Route::get('dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('transactions', [TransactionController::class, 'index'])->name('transactions');
     Route::post('transactions', [TransactionController::class, 'store'])->name('transactions.store');
+    Route::put('transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
+    Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
     Route::get('account', [AccountController::class, 'index'])->name('account');
     Route::post('account', [AccountController::class, 'store'])->name('account.store');
 });

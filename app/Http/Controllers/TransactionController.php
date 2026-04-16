@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TransactionLocation;
 use App\Enums\TransactionType;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
+use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,6 +99,40 @@ class TransactionController extends Controller
             ...$request->validated(),
             'user_id' => $request->user()?->id,
         ]);
+
+        return $this->redirectToIndex($request);
+    }
+
+    /**
+     * Update the given transaction.
+     */
+    public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
+    {
+        $transaction->update($request->validated());
+
+        return $this->redirectToIndex($request);
+    }
+
+    /**
+     * Remove the given transaction.
+     */
+    public function destroy(Request $request, Transaction $transaction): RedirectResponse
+    {
+        $transaction->delete();
+
+        return $this->redirectToIndex($request);
+    }
+
+    /**
+     * Redirect the user back to the transaction index.
+     */
+    private function redirectToIndex(Request $request): RedirectResponse
+    {
+        $previousUrl = $request->headers->get('referer');
+
+        if (is_string($previousUrl) && $previousUrl !== '') {
+            return redirect()->to($previousUrl);
+        }
 
         return to_route('transactions');
     }

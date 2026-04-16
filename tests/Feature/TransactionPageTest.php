@@ -61,6 +61,54 @@ class TransactionPageTest extends TestCase
         ]);
     }
 
+    public function test_authenticated_users_can_update_a_transaction(): void
+    {
+        $user = User::factory()->create();
+        $transaction = Transaction::factory()->create([
+            'user_id' => $user->id,
+            'transaction_date' => '2026-04-15 10:30:00',
+            'type' => TransactionType::Credit->value,
+            'location' => TransactionLocation::Cash->value,
+            'description' => 'Original cash contribution',
+            'amount' => 2500000,
+        ]);
+
+        $response = $this->from(route('transactions'))->actingAs($user)->put(route('transactions.update', $transaction), [
+            'transaction_date' => '2026-04-16 13:15:00',
+            'type' => TransactionType::Debit->value,
+            'location' => TransactionLocation::Bank->value,
+            'description' => 'Updated operational transfer',
+            'amount' => 1750000,
+        ]);
+
+        $response->assertRedirect(route('transactions'));
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
+            'user_id' => $user->id,
+            'transaction_date' => '2026-04-16 13:15:00',
+            'type' => TransactionType::Debit->value,
+            'location' => TransactionLocation::Bank->value,
+            'description' => 'Updated operational transfer',
+            'amount' => 1750000,
+        ]);
+    }
+
+    public function test_authenticated_users_can_delete_a_transaction(): void
+    {
+        $user = User::factory()->create();
+        $transaction = Transaction::factory()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->from(route('transactions'))->actingAs($user)->delete(route('transactions.destroy', $transaction));
+
+        $response->assertRedirect(route('transactions'));
+        $this->assertDatabaseMissing('transactions', [
+            'id' => $transaction->id,
+        ]);
+    }
+
     public function test_transaction_creation_requires_valid_enum_values_and_a_non_negative_amount(): void
     {
         $user = User::factory()->create();
