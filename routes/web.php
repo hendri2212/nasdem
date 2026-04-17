@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TransactionController;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -10,7 +11,10 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard', [
+        'totals' => Transaction::totals(),
+        'chart' => Transaction::chartSeries(),
+    ]);
 })->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {

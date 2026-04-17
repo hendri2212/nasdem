@@ -58,28 +58,7 @@ class TransactionController extends Controller
                 'description' => $transaction->description,
                 'amount' => $transaction->amount,
             ]),
-            'totals' => [
-                'cash_balance' => Transaction::query()
-                    ->where('location', TransactionLocation::Cash->value)
-                    ->selectRaw(
-                        'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as balance',
-                        [TransactionType::Credit->value, TransactionType::Debit->value],
-                    )
-                    ->value('balance') ?? 0,
-                'bank_balance' => Transaction::query()
-                    ->where('location', TransactionLocation::Bank->value)
-                    ->selectRaw(
-                        'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as balance',
-                        [TransactionType::Credit->value, TransactionType::Debit->value],
-                    )
-                    ->value('balance') ?? 0,
-                'net_movement' => Transaction::query()
-                    ->selectRaw(
-                        'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as balance',
-                        [TransactionType::Credit->value, TransactionType::Debit->value],
-                    )
-                    ->value('balance') ?? 0,
-            ],
+            'totals' => Transaction::totals(),
             'types' => TransactionType::values(),
             'locations' => TransactionLocation::values(),
             'filters' => [
