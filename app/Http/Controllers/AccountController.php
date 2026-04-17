@@ -28,7 +28,12 @@ class AccountController extends Controller
                 })
                 ->latest()
                 ->get(['id', 'name', 'email', 'role', 'created_at']),
-            'roles' => UserRole::values(),
+            'roles' => $currentUser?->role === UserRole::Superadmin
+                ? UserRole::values()
+                : [
+                    UserRole::Admin->value,
+                    UserRole::User->value,
+                ],
         ]);
     }
 

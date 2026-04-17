@@ -23,8 +23,10 @@ class AccountManagementTest extends TestCase
         $response->assertSee($listedUsers->first()->name);
         $response->assertSee($listedUsers->last()->email);
         $response->assertSee(UserRole::User->value);
+        $response->assertSee(UserRole::Admin->value);
         $response->assertDontSee($superadmin->name);
         $response->assertDontSee($superadmin->email);
+        $response->assertDontSee(UserRole::Superadmin->value);
     }
 
     public function test_superadmin_can_view_superadmin_rows_on_the_account_management_page(): void
@@ -90,6 +92,25 @@ class AccountManagementTest extends TestCase
 
         $response->assertRedirect(route('account'));
         $response->assertSessionHasErrors(['role']);
+    }
+
+    public function test_admin_can_not_create_a_superadmin_user(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Admin]);
+
+        $response = $this->from(route('account'))->actingAs($user)->post(route('account.store'), [
+            'name' => 'Blocked Superadmin',
+            'email' => 'blocked-superadmin@example.com',
+            'role' => UserRole::Superadmin->value,
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertRedirect(route('account'));
+        $response->assertSessionHasErrors(['role']);
+        $this->assertDatabaseMissing('users', [
+            'email' => 'blocked-superadmin@example.com',
+        ]);
     }
 
     public function test_users_with_user_role_can_not_view_the_account_management_page(): void
