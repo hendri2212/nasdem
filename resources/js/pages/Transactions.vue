@@ -108,6 +108,41 @@ const typeClasses: Record<TransactionItem['type'], string> = {
 };
 
 const isEditing = computed(() => selectedTransactionId.value !== null);
+const selectedTransaction = computed(() => {
+    return props.transactions.find((transaction) => transaction.id === selectedTransactionId.value) ?? null;
+});
+
+const effectiveLocationBalance = computed(() => {
+    const currentBalance = form.location === 'cash' ? props.totals.cash_balance : props.totals.bank_balance;
+
+    if (selectedTransaction.value === null || selectedTransaction.value.location !== form.location) {
+        return currentBalance;
+    }
+
+    const currentEffect = selectedTransaction.value.type === 'credit' ? selectedTransaction.value.amount : -selectedTransaction.value.amount;
+
+    return currentBalance - currentEffect;
+});
+
+const debitBalanceError = computed(() => {
+    if (form.type !== 'debit') {
+        return '';
+    }
+
+    if (effectiveLocationBalance.value <= 0) {
+        return `Saldo ${form.location} saat ini 0 sehingga transaksi debit tidak bisa dibuat.`;
+    }
+
+    const requestedAmount = Number(form.amount || 0);
+
+    if (requestedAmount > effectiveLocationBalance.value) {
+        return `Jumlah debit melebihi saldo ${form.location} yang tersedia (${formatCurrency(effectiveLocationBalance.value)}).`;
+    }
+
+    return '';
+});
+
+const isSubmitBlocked = computed(() => debitBalanceError.value !== '');
 
 const hasActiveFilters = computed(() => {
     return filters.search !== '' || filters.type !== '' || filters.location !== '';
@@ -446,11 +481,17 @@ const submit = (): void => {
                                 <div class="grid gap-2">
                                     <Label for="transaction-amount">Amount</Label>
                                     <Input id="transaction-amount" v-model="form.amount" type="number" min="0" placeholder="0" />
+                                    <p v-if="form.type === 'debit'" class="text-xs text-muted-foreground">
+                                        Saldo tersedia: {{ formatCurrency(effectiveLocationBalance) }}
+                                    </p>
+                                    <p v-if="debitBalanceError" class="text-sm font-medium text-destructive">
+                                        {{ debitBalanceError }}
+                                    </p>
                                     <InputError :message="form.errors.amount" />
                                 </div>
 
                                 <div class="flex flex-col gap-3 sm:flex-row">
-                                    <Button type="submit" class="w-full" :disabled="form.processing">
+                                    <Button type="submit" class="w-full" :disabled="form.processing || isSubmitBlocked">
                                         <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
                                         <component :is="isEditing ? Pencil : ReceiptText" v-else class="size-4" />
                                         {{ isEditing ? 'Update transaction' : 'Save transaction' }}

@@ -64,6 +64,13 @@ class TransactionPageTest extends TestCase
     public function test_authenticated_users_can_update_a_transaction(): void
     {
         $user = User::factory()->create();
+
+        Transaction::factory()->create([
+            'type' => TransactionType::Credit->value,
+            'location' => TransactionLocation::Bank->value,
+            'amount' => 3000000,
+        ]);
+
         $transaction = Transaction::factory()->create([
             'user_id' => $user->id,
             'transaction_date' => '2026-04-15 10:30:00',
@@ -139,5 +146,68 @@ class TransactionPageTest extends TestCase
 
         $response->assertRedirect(route('transactions'));
         $response->assertSessionHasErrors(['transaction_date', 'description']);
+    }
+
+    public function test_debit_transaction_can_not_be_created_when_cash_balance_is_zero(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->from(route('transactions'))->actingAs($user)->post(route('transactions.store'), [
+            'transaction_date' => '2026-04-17 09:15:00',
+            'type' => TransactionType::Debit->value,
+            'location' => TransactionLocation::Cash->value,
+            'description' => 'Cash withdrawal with zero balance',
+            'amount' => 50000,
+        ]);
+
+        $response->assertRedirect(route('transactions'));
+        $response->assertSessionHasErrors(['amount']);
+        $this->assertDatabaseMissing('transactions', [
+            'description' => 'Cash withdrawal with zero balance',
+        ]);
+    }
+
+    public function test_debit_transaction_can_not_be_created_when_bank_balance_is_zero(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->from(route('transactions'))->actingAs($user)->post(route('transactions.store'), [
+            'transaction_date' => '2026-04-17 09:15:00',
+            'type' => TransactionType::Debit->value,
+            'location' => TransactionLocation::Bank->value,
+            'description' => 'Bank payment with zero balance',
+            'amount' => 75000,
+        ]);
+
+        $response->assertRedirect(route('transactions'));
+        $response->assertSessionHasErrors(['amount']);
+        $this->assertDatabaseMissing('transactions', [
+            'description' => 'Bank payment with zero balance',
+        ]);
+    }
+
+    public function test_debit_transaction_can_not_be_created_when_amount_exceeds_available_balance(): void
+    {
+        $user = User::factory()->create();
+
+        Transaction::factory()->create([
+            'type' => TransactionType::Credit->value,
+            'location' => TransactionLocation::Cash->value,
+            'amount' => 100000,
+        ]);
+
+        $response = $this->from(route('transactions'))->actingAs($user)->post(route('transactions.store'), [
+            'transaction_date' => '2026-04-17 09:15:00',
+            'type' => TransactionType::Debit->value,
+            'location' => TransactionLocation::Cash->value,
+            'description' => 'Debit exceeds cash balance',
+            'amount' => 150000,
+        ]);
+
+        $response->assertRedirect(route('transactions'));
+        $response->assertSessionHasErrors(['amount']);
+        $this->assertDatabaseMissing('transactions', [
+            'description' => 'Debit exceeds cash balance',
+        ]);
     }
 }
